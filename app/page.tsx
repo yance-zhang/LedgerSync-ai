@@ -12,7 +12,7 @@ export default function Home() {
           <span className="grid size-10 place-items-center rounded-xl bg-[var(--primary)] text-sm text-white">LS</span>
           <span>LedgerSync <span className="text-[var(--primary)]">AI</span></span>
         </a>
-        <span className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--muted)]">Canada · CAD</span>
+        <a className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm text-[var(--muted)] transition hover:bg-stone-50" href="/login">Sign in</a>
       </div>
 
       <section className="mx-auto grid max-w-6xl gap-12 pb-20 pt-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pt-28">
@@ -21,7 +21,7 @@ export default function Home() {
           <h1 className="max-w-2xl text-5xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">Every receipt,<br />right where it belongs.</h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--muted)]">LedgerSync AI brings receipts and invoices together and helps you build an accounting checklist you can review with confidence.</p>
           <div className="mt-9 flex flex-wrap gap-3">
-            <a href="#workflow" className="rounded-xl bg-[var(--primary)] px-5 py-3 font-medium text-white transition hover:opacity-90">Get started <span aria-hidden="true">→</span></a>
+            <a href="/login" className="rounded-xl bg-[var(--primary)] px-5 py-3 font-medium text-white transition hover:opacity-90">Get started <span aria-hidden="true">→</span></a>
             <a href="#workflow" className="rounded-xl border border-[var(--line)] bg-white px-5 py-3 font-medium transition hover:bg-stone-50">See how it works</a>
           </div>
         </div>
