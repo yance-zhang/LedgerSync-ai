@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Files, LayoutDashboard, ListChecks, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -15,13 +16,23 @@ export function WorkspaceNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="workspace-nav" aria-label="Workspace navigation">
+    <nav className="flex gap-1 overflow-x-auto md:flex-col" aria-label="Workspace navigation">
       {navigation.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+        const active =
+          pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+
         return (
-          <Link key={href} href={href} className={`workspace-nav-link${active ? " nav-current" : ""}`} aria-current={active ? "page" : undefined}>
-            <Icon size={18} strokeWidth={1.8} aria-hidden="true" />{label}
-            {href === "/dashboard/documents" && <span className="nav-count">0</span>}
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "inline-flex min-h-10 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              active && "bg-accent text-accent-foreground",
+            )}
+          >
+            <Icon aria-hidden="true" className="size-4" strokeWidth={1.8} />
+            {label}
           </Link>
         );
       })}

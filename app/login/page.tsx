@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import { AuthForm } from "@/components/auth-form";
+import { Brand } from "@/components/brand";
+import { Alert } from "@/components/ui/alert";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function LoginPage({
   searchParams,
@@ -9,46 +12,85 @@ export default async function LoginPage({
   searchParams: Promise<{ confirmed?: string }>;
 }) {
   const { confirmed } = await searchParams;
+
   try {
     const supabase = await createClient();
-    const { data: { claims } } = await supabase.auth.getClaims();
-    if (claims) redirect("/dashboard");
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) redirect("/dashboard");
   } catch (error) {
     if (error instanceof Error && error.message === "NEXT_REDIRECT") throw error;
   }
 
   return (
-    <main className="auth-page">
-      <section className="auth-story">
-        <Link className="brand brand-light" href="/" aria-label="LedgerSync AI home">
-          <span className="brand-mark">LS</span>
-          <span>LedgerSync <b>AI</b></span>
-        </Link>
-        <div className="auth-story-copy">
-          <p className="eyebrow">A clearer close starts here</p>
-          <h1>Good records make room for better decisions.</h1>
-          <p>Bring receipts and invoices together, then move through each month with a little more clarity.</p>
+    <main className="min-h-screen bg-card lg:grid lg:grid-cols-[minmax(360px,0.9fr)_1.1fr]">
+      <section className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-forest px-10 py-9 text-primary-foreground lg:flex xl:px-16">
+        <Brand className="relative z-10" tone="inverse" />
+
+        <div className="relative z-10 max-w-lg py-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-forest-light">
+            A clearer close starts here
+          </p>
+          <h1 className="mt-5 text-5xl font-medium leading-[1.08] tracking-tight xl:text-6xl">
+            Good records make room for better decisions.
+          </h1>
+          <p className="mt-6 max-w-md text-base leading-7 text-primary-foreground/75">
+            Bring receipts and invoices together, then move through each month with a little more
+            clarity.
+          </p>
+
+          <div className="mt-10 flex flex-col gap-3 text-sm text-primary-foreground/85">
+            <span className="flex items-center gap-2">
+              <Check className="size-4 text-forest-light" />
+              One place for your business documents
+            </span>
+            <span className="flex items-center gap-2">
+              <Check className="size-4 text-forest-light" />
+              A clearer view of your monthly records
+            </span>
+          </div>
         </div>
-        <div className="auth-proof">
-          <span className="proof-dot" />
-          <span>One calm place for the details behind your numbers.</span>
-        </div>
-        <span className="auth-orbit auth-orbit-one" aria-hidden="true" />
-        <span className="auth-orbit auth-orbit-two" aria-hidden="true" />
+
+        <p className="relative z-10 flex items-center gap-2 text-xs text-primary-foreground/70">
+          <ShieldCheck className="size-4" />
+          Private workspace for the details behind your numbers.
+        </p>
+        <span
+          aria-hidden="true"
+          className="absolute -right-40 top-1/4 size-[36rem] rounded-full border border-white/10"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute -right-24 top-1/3 size-[26rem] rounded-full border border-white/10"
+        />
       </section>
 
-      <section className="auth-form-side">
-        <Link href="/" className="mobile-brand brand" aria-label="LedgerSync AI home">
-          <span className="brand-mark">LS</span><span>LedgerSync <b>AI</b></span>
-        </Link>
-        <div className="auth-form-wrap">
+      <section className="flex min-h-screen flex-col px-5 py-6 sm:px-10 lg:items-center lg:justify-center lg:px-14">
+        <div className="mb-16 lg:hidden">
+          <Brand />
+        </div>
+
+        <div className="mx-auto w-full max-w-md">
           {confirmed === "false" && (
-            <p className="form-notice form-error" role="status">That confirmation link is invalid or has expired. Please try again.</p>
+            <Alert variant="destructive" className="mb-5">
+              That confirmation link is invalid or has expired. Please try again.
+            </Alert>
           )}
           <AuthForm />
-          <p className="auth-terms">By continuing, you agree to keep your financial workspace secure and private.</p>
+          <p className="mt-8 text-center text-xs leading-5 text-muted-foreground">
+            By continuing, you agree to keep your financial workspace secure and private.
+          </p>
         </div>
-        <Link href="/" className="auth-back">← Back to home</Link>
+
+        <Link
+          href="/"
+          className="mt-auto inline-flex items-center gap-2 pt-12 text-sm text-muted-foreground hover:text-foreground lg:absolute lg:bottom-8 lg:left-10"
+        >
+          <ArrowLeft className="size-4" />
+          Back to home
+        </Link>
       </section>
     </main>
   );
