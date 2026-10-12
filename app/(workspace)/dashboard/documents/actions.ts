@@ -72,5 +72,53 @@ export async function saveDocumentReview(documentId: string, input: unknown) {
 
   revalidatePath(`/dashboard/documents/${idResult.data}`);
   revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard/checklist");
+  return { success: true };
+}
+
+export async function deleteDocument(documentId: string) {
+  const idResult = z.string().uuid().safeParse(documentId);
+  if (!idResult.success) return { error: "This document could not be found." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Please sign in again to delete this document." };
+
+  const { data: document, error: lookupError } = await supabase
+    .from("documents")
+    .select("id, storage_path")
+    .eq("id", idResult.data)
+    .maybeSingle();
+
+  if (lookupError || !document) return { error: "This document could not be found or accessed." };
+
+  const { error: storageError } = await supabase.storage
+    .from("documents")
+    .remove([document.storage_path]);
+
+  if (storageError) {
+    console.error("Document storage deletion failed:", storageError);
+    return { error: "The document file could not be deleted. Please try again." };
+  }
+
+  const { data: deleted, error: deleteError } = await supabase
+    .from("documents")
+    .delete()
+    .eq("id", document.id)
+    .select("id")
+    .maybeSingle();
+
+  if (deleteError || !deleted) {
+    console.error("Document record deletion failed:", deleteError);
+    return { error: "The file was removed, but its record could not be deleted. Please contact your workspace admin." };
+  }
+
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard/checklist");
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/documents/${document.id}`);
   return { success: true };
 }

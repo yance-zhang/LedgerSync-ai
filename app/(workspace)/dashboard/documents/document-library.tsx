@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import { DocumentDeleteButton } from "./document-delete-button";
 import { getOrCreateWorkspace } from "./actions";
 
 type Document = {
@@ -210,43 +211,45 @@ export function DocumentLibrary({ documents }: { documents: Document[] }) {
         <Card className="overflow-hidden shadow-none">
           <div className="divide-y divide-border">
             {documents.map((document) => (
-              <Link
-                className="flex min-h-18 items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 sm:gap-4 sm:px-5"
-                href={`/dashboard/documents/${document.id}`}
-                key={document.id}
-              >
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary">
-                  {document.content_type === "application/pdf" ? (
-                    <FileText className="size-5" />
-                  ) : (
-                    <FileImage className="size-5" />
-                  )}
-                </span>
-                <span className="grid min-w-0 flex-1 gap-1">
-                  <strong className="truncate text-sm font-medium">{document.file_name}</strong>
-                  <small className="text-xs text-muted-foreground">
-                    {formatSize(document.size_bytes)}
-                    <span className="px-1">·</span>
-                    {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-                      new Date(document.created_at),
-                    )}
-                  </small>
-                </span>
-                <Badge
-                  variant={
-                    document.status === "failed"
-                      ? "destructive"
-                      : document.status === "confirmed"
-                        ? "default"
-                        : document.status === "needs_review"
-                          ? "outline"
-                          : "secondary"
-                  }
-                  className="shrink-0"
+              <div key={document.id} className="flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+                <Link
+                  className="flex min-h-18 min-w-0 flex-1 items-center gap-3 rounded-xl px-1 transition-colors hover:bg-muted/60 sm:gap-4 sm:px-2"
+                  href={`/dashboard/documents/${document.id}`}
                 >
-                  {statusLabels[document.status] ?? document.status}
-                </Badge>
-              </Link>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary">
+                    {document.content_type === "application/pdf" ? (
+                      <FileText className="size-5" />
+                    ) : (
+                      <FileImage className="size-5" />
+                    )}
+                  </span>
+                  <span className="grid min-w-0 flex-1 gap-1">
+                    <strong className="truncate text-sm font-medium">{document.file_name}</strong>
+                    <small className="text-xs text-muted-foreground">
+                      {formatSize(document.size_bytes)}
+                      <span className="px-1">·</span>
+                      {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
+                        new Date(document.created_at),
+                      )}
+                    </small>
+                  </span>
+                  <Badge
+                    variant={
+                      document.status === "failed"
+                        ? "destructive"
+                        : document.status === "confirmed"
+                          ? "default"
+                          : document.status === "needs_review"
+                            ? "outline"
+                            : "secondary"
+                    }
+                    className="shrink-0"
+                  >
+                    {statusLabels[document.status] ?? document.status}
+                  </Badge>
+                </Link>
+                <DocumentDeleteButton documentId={document.id} fileName={document.file_name} />
+              </div>
             ))}
           </div>
         </Card>

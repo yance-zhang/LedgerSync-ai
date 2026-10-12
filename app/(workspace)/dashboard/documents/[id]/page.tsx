@@ -8,6 +8,7 @@ import { InvoiceParsedSchema } from "@/lib/schemas/invoice";
 import { ExtractionControl } from "../extraction-control";
 import { InvoiceReviewForm } from "../invoice-review-form";
 import { DocumentPreview } from "../document-preview";
+import { DocumentDeleteButton } from "../document-delete-button";
 
 const labels: Record<string, string> = {
   uploaded: "Uploaded",
@@ -61,23 +62,30 @@ export default async function DocumentDetailPage({
       <p className="mt-8 text-xs font-semibold uppercase tracking-[0.17em] text-muted-foreground">
         Document details
       </p>
-      <div className="mt-3 flex items-center gap-4">
-        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent text-primary">
-          {isPdf ? <FileText className="size-5" /> : <FileImage className="size-5" />}
-        </span>
-        <div className="min-w-0">
-          <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">
-            {document.file_name}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Added{" "}
-            {new Intl.DateTimeFormat("en", {
-              dateStyle: "long",
-              timeStyle: "short",
-              timeZone: "America/Edmonton",
-            }).format(new Date(document.created_at))}
-          </p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent text-primary">
+            {isPdf ? <FileText className="size-5" /> : <FileImage className="size-5" />}
+          </span>
+          <div className="min-w-0">
+            <h1 className="break-words text-2xl font-semibold tracking-tight sm:text-3xl">
+              {document.file_name}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Added{" "}
+              {new Intl.DateTimeFormat("en", {
+                dateStyle: "long",
+                timeStyle: "short",
+                timeZone: "America/Edmonton",
+              }).format(new Date(document.created_at))}
+            </p>
+          </div>
         </div>
+        <DocumentDeleteButton
+          documentId={document.id}
+          fileName={document.file_name}
+          redirectAfterDelete
+        />
       </div>
 
       <div className="mt-7 grid gap-4 sm:grid-cols-2">

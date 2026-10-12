@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, FileText, FolderPlus, Sparkles } from "lucide-react";
+import { InvoiceParsedSchema } from "@/lib/schemas/invoice";
+import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -16,28 +18,63 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-const stats = [
-  {
-    label: "Documents collected",
-    value: "0",
-    note: "Your records will gather here",
-    icon: FileText,
-  },
-  {
-    label: "Ready for review",
-    value: "—",
-    note: "Nothing needs your attention",
-    icon: Sparkles,
-  },
-  {
-    label: "Monthly checklist",
-    value: "Not started",
-    note: "Your checklist comes together here",
-    icon: FolderPlus,
-  },
-];
+type DocumentRow = {
+  id: string;
+  file_name: string;
+  status: string;
+  created_at: string;
+  reviewed_data: unknown;
+};
 
-export default function DashboardPage() {
+const attentionStatuses = new Set(["uploaded", "processing", "needs_review", "failed"]);
+
+function formatDate(date: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "America/Edmonton",
+  }).format(new Date(date));
+}
+
+function statusLabel(status: string) {
+  return status.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: memberships } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .limit(1);
+  const organizationId = memberships?.[0]?.organization_id;
+
+  const { data } = organizationId
+    ? await supabase
+        .from("documents")
+        .select("id, file_name, status, created_at, reviewed_data")
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+
+  const documents = (data ?? []) as DocumentRow[];
+  const needsAttention = documents.filter((document) => attentionStatuses.has(document.status)).length;
+  const confirmed = documents.filter(
+    (document) =>
+      document.status === "confirmed" &&
+      InvoiceParsedSchema.safeParse(document.reviewed_data).success,
+  );
+  const monthParts = new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "2-digit",
+    timeZone: "America/Edmonton",
+  }).formatToParts(new Date());
+  const monthKey = `${monthParts.find((part) => part.type === "year")?.value}-${monthParts.find((part) => part.type === "month")?.value}`;
+  const thisMonthConfirmed = confirmed.filter((document) => {
+    const parsed = InvoiceParsedSchema.safeParse(document.reviewed_data);
+    return parsed.success && parsed.data.invoiceDate.startsWith(monthKey);
+  }).length;
+
   const today = new Intl.DateTimeFormat("en", {
     weekday: "long",
     month: "long",
@@ -46,6 +83,27 @@ export default function DashboardPage() {
   })
     .format(new Date())
     .toUpperCase();
+
+  const stats = [
+    {
+      label: "Documents collected",
+      value: String(documents.length),
+      note: documents.length === 1 ? "1 document in your workspace" : `${documents.length} documents in your workspace`,
+      icon: FileText,
+    },
+    {
+      label: "Need attention",
+      value: String(needsAttention),
+      note: needsAttention === 0 ? "Nothing needs your attention" : "Uploads that may need your attention",
+      icon: Sparkles,
+    },
+    {
+      label: "Monthly checklist",
+      value: String(thisMonthConfirmed),
+      note: thisMonthConfirmed === 1 ? "Confirmed record dated this month" : "Confirmed records dated this month",
+      icon: FolderPlus,
+    },
+  ];
 
   return (
     <>
@@ -107,26 +165,51 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            <Empty className="min-h-64 border-0 bg-muted/40">
-              <EmptyMedia>
-                <FileText className="size-5" />
-              </EmptyMedia>
-              <EmptyTitle>A good place to begin.</EmptyTitle>
-              <EmptyDescription>
-                Once uploaded, your receipts and invoices will be ready here when you need them.
-              </EmptyDescription>
-              <Link
-                href="/dashboard/documents"
-                className={buttonVariants({
-                  variant: "outline",
-                  size: "sm",
-                  className: "mt-4",
-                })}
-              >
-                Explore documents
-                <ArrowRight data-icon="inline-end" />
-              </Link>
-            </Empty>
+            {documents.length === 0 ? (
+              <Empty className="min-h-64 border-0 bg-muted/40">
+                <EmptyMedia>
+                  <FileText className="size-5" />
+                </EmptyMedia>
+                <EmptyTitle>A good place to begin.</EmptyTitle>
+                <EmptyDescription>
+                  Once uploaded, your receipts and invoices will be ready here when you need them.
+                </EmptyDescription>
+                <Link
+                  href="/dashboard/documents"
+                  className={buttonVariants({
+                    variant: "outline",
+                    size: "sm",
+                    className: "mt-4",
+                  })}
+                >
+                  Explore documents
+                  <ArrowRight data-icon="inline-end" />
+                </Link>
+              </Empty>
+            ) : (
+              <div className="divide-y divide-border">
+                {documents.slice(0, 5).map((document) => (
+                  <Link
+                    key={document.id}
+                    href={`/dashboard/documents/${document.id}`}
+                    className="flex items-center gap-3 py-4 first:pt-1 last:pb-1"
+                  >
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-accent text-primary">
+                      <FileText className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{document.file_name}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        Added {formatDate(document.created_at)}
+                      </span>
+                    </span>
+                    <Badge variant={document.status === "confirmed" ? "secondary" : "outline"}>
+                      {statusLabel(document.status)}
+                    </Badge>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -138,17 +221,21 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               The next small thing
             </p>
-            <CardTitle className="max-w-xs pt-1 text-2xl">Start with what you have.</CardTitle>
+            <CardTitle className="max-w-xs pt-1 text-2xl">
+              {needsAttention > 0 ? "Check a recent upload." : "Keep your paper trail current."}
+            </CardTitle>
             <CardDescription className="max-w-sm leading-6">
-              Upload a recent receipt or invoice to get your paper trail started.
+              {needsAttention > 0
+                ? `${needsAttention} document${needsAttention === 1 ? " needs" : "s need"} your attention.`
+                : "Upload a recent receipt or invoice to keep your records up to date."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link
-              href="/dashboard/documents"
+              href={needsAttention > 0 ? "/dashboard/documents" : "/dashboard/checklist"}
               className={buttonVariants({ variant: "secondary", size: "sm" })}
             >
-              Go to documents
+              {needsAttention > 0 ? "Open documents" : "Open checklist"}
               <ArrowUpRight data-icon="inline-end" />
             </Link>
           </CardContent>
