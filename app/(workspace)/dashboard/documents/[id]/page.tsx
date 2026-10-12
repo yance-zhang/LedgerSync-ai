@@ -1,11 +1,13 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, FileImage, FileText } from "lucide-react";
+import { ArrowLeft, FileImage, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { InvoiceParsedSchema } from "@/lib/schemas/invoice";
+import { ExtractionControl } from "../extraction-control";
+import { InvoiceReviewForm } from "../invoice-review-form";
+import { DocumentPreview } from "../document-preview";
 
 const labels: Record<string, string> = {
   uploaded: "Uploaded",
@@ -24,7 +26,7 @@ export default async function DocumentDetailPage({
   const supabase = await createClient();
   const { data: document } = await supabase
     .from("documents")
-    .select("id, file_name, content_type, size_bytes, status, created_at, storage_path")
+    .select("id, file_name, content_type, size_bytes, status, created_at, storage_path, parsed_data, reviewed_data, processing_error")
     .eq("id", id)
     .maybeSingle();
 
@@ -40,6 +42,7 @@ export default async function DocumentDetailPage({
       : document.status === "confirmed"
         ? "default"
         : "secondary";
+  const parsedData = InvoiceParsedSchema.safeParse(document.reviewed_data ?? document.parsed_data);
   const formattedSize =
     document.size_bytes < 1024 * 1024
       ? `${Math.round(document.size_bytes / 1024)} KB`
@@ -87,7 +90,15 @@ export default async function DocumentDetailPage({
               {labels[document.status] ?? document.status}
             </Badge>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Status updates appear here as this document moves through review.
+              {document.status === "confirmed"
+                ? "You reviewed and confirmed these details."
+                : document.status === "needs_review"
+                  ? "Check the extracted fields against the original file."
+                  : document.status === "failed"
+                    ? document.processing_error ?? "Extraction could not be completed."
+                    : document.status === "processing"
+                      ? "The document is being read."
+                      : "Start extraction to prepare the details for review."}
             </p>
           </CardContent>
         </Card>
@@ -103,41 +114,29 @@ export default async function DocumentDetailPage({
         </Card>
       </div>
 
-      {signed?.signedUrl ? (
-        <Card className="mt-4 flex flex-col items-center gap-4 p-4 shadow-none">
-          <div className="w-full overflow-hidden rounded-xl bg-muted">
-            {isPdf ? (
-              <iframe
-                title={`Preview of ${document.file_name}`}
-                src={signed.signedUrl}
-                className="h-[min(66vh,720px)] w-full border-0"
-              />
-            ) : (
-              <Image
-                unoptimized
-                width={1200}
-                height={1000}
-                src={signed.signedUrl}
-                alt={document.file_name}
-                className="mx-auto h-auto max-h-[70vh] w-auto object-contain"
-              />
-            )}
-          </div>
-          <a
-            className={buttonVariants({ variant: "outline" })}
-            href={signed.signedUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Download data-icon="inline-start" />
-            Open original
-          </a>
-        </Card>
-      ) : (
-        <Card className="mt-4 border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          The private file is currently unavailable.
-        </Card>
-      )}
+      <div className="mt-1 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-6">
+        <div className="min-w-0">
+          {parsedData.success ? (
+            <InvoiceReviewForm documentId={document.id} initialData={parsedData.data} />
+          ) : (
+            <ExtractionControl documentId={document.id} status={document.status} />
+          )}
+        </div>
+
+        <div className="min-w-0">
+          {signed?.signedUrl ? (
+            <DocumentPreview
+              fileName={document.file_name}
+              isPdf={isPdf}
+              signedUrl={signed.signedUrl}
+            />
+          ) : (
+            <Card className="mt-5 border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive shadow-none">
+              The private file is currently unavailable.
+            </Card>
+          )}
+        </div>
+      </div>
     </section>
   );
 }

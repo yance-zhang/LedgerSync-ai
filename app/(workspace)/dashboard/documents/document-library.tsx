@@ -111,7 +111,21 @@ export function DocumentLibrary({ documents }: { documents: Document[] }) {
           throw new Error(uploadError.message || "File upload failed.");
         }
 
-        setNotice(`${safeName} uploaded and added to your library.`);
+        try {
+          const extractionResponse = await fetch(`/api/documents/${id}/extract`, { method: "POST" });
+          if (extractionResponse.ok) {
+            setNotice(`${safeName} uploaded. Extraction is running and will be ready for review shortly.`);
+          } else {
+            const extractionResult = (await extractionResponse.json()) as { error?: string };
+            setNotice(
+              `${safeName} uploaded. ${extractionResult.error ?? "Open the document to start extraction."}`,
+            );
+          }
+        } catch {
+          setNotice(
+            `${safeName} uploaded. Open the document to start extraction.`,
+          );
+        }
         router.refresh();
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "Upload failed. Please try again.");
