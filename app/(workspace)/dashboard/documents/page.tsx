@@ -1,13 +1,11 @@
 import { DocumentLibrary } from "./document-library";
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspaces";
 
 export default async function DocumentsPage() {
   const supabase = await createClient();
-  const { data: memberships } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .limit(1);
-  const organizationId = memberships?.[0]?.organization_id;
+  const { current } = await getWorkspaceContext();
+  const organizationId = current?.id;
 
   const { data } = organizationId
     ? await supabase

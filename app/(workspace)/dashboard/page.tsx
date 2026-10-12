@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, FileText, FolderPlus, Sparkles } from "lucide-react";
 import { InvoiceParsedSchema } from "@/lib/schemas/invoice";
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspaces";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -43,11 +44,8 @@ function statusLabel(status: string) {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: memberships } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .limit(1);
-  const organizationId = memberships?.[0]?.organization_id;
+  const { current } = await getWorkspaceContext();
+  const organizationId = current?.id;
 
   const { data } = organizationId
     ? await supabase

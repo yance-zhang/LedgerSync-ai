@@ -6,6 +6,7 @@ import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from "@/components/ui
 import { InvoiceParsedSchema } from "@/lib/schemas/invoice";
 import { createClient } from "@/lib/supabase/server";
 import { ChecklistPeriods } from "./checklist-periods";
+import { getWorkspaceContext } from "@/lib/workspaces";
 
 type DocumentRow = {
   id: string;
@@ -17,11 +18,8 @@ type DocumentRow = {
 
 export default async function ChecklistPage() {
   const supabase = await createClient();
-  const { data: memberships } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .limit(1);
-  const organizationId = memberships?.[0]?.organization_id;
+  const { current } = await getWorkspaceContext();
+  const organizationId = current?.id;
   const { data } = organizationId
     ? await supabase
         .from("documents")

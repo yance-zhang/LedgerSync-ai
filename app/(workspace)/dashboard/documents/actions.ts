@@ -4,44 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { InvoiceParsedSchema } from "@/lib/schemas/invoice";
+import { getWorkspaceContext } from "@/lib/workspaces";
 
 export async function getOrCreateWorkspace() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) throw new Error("Please sign in again to upload documents.");
-
-  const { data: memberships, error } = await supabase
-    .from("organization_members")
-    .select("organization_id, organizations(id, name)")
-    .eq("user_id", user.id)
-    .limit(1);
-
-  if (error) throw new Error("Could not load your workspace.");
-
-  const first = memberships?.[0];
-  const organization = Array.isArray(first?.organizations)
-    ? first.organizations[0]
-    : first?.organizations;
-
-  if (first && organization) {
-    return { id: first.organization_id, name: organization.name as string };
-  }
-
-  const { data: created, error: createError } = await supabase
-    .from("organizations")
-    .insert({ name: "My workspace", created_by: user.id })
-    .select("id, name")
-    .single();
-
-  if (createError || !created) {
-    console.error("Workspace creation failed:", createError);
-    throw new Error("Could not create your workspace. Please refresh and try again.");
-  }
-  return created;
+  const { current } = await getWorkspaceContext();
+  if (!current) throw new Error("Please sign in again to upload documents.");
+  return current;
 }
 
 export async function saveDocumentReview(documentId: string, input: unknown) {
@@ -58,10 +26,14 @@ export async function saveDocumentReview(documentId: string, input: unknown) {
 
   if (!user) return { error: "Please sign in again to save your review." };
 
+  const { current } = await getWorkspaceContext();
+  if (!current) return { error: "No active workspace is available." };
+
   const { data, error } = await supabase
     .from("documents")
     .update({ reviewed_data: dataResult.data, status: "confirmed", processing_error: null })
     .eq("id", idResult.data)
+    .eq("organization_id", current.id)
     .not("parsed_data", "is", null)
     .select("id")
     .maybeSingle();
@@ -87,10 +59,14 @@ export async function deleteDocument(documentId: string) {
 
   if (!user) return { error: "Please sign in again to delete this document." };
 
+  const { current } = await getWorkspaceContext();
+  if (!current) return { error: "No active workspace is available." };
+
   const { data: document, error: lookupError } = await supabase
     .from("documents")
     .select("id, storage_path")
     .eq("id", idResult.data)
+    .eq("organization_id", current.id)
     .maybeSingle();
 
   if (lookupError || !document) return { error: "This document could not be found or accessed." };

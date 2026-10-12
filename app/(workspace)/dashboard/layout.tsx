@@ -5,6 +5,7 @@ import { Brand } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { WorkspaceNav } from "@/components/workspace-nav";
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceContext } from "@/lib/workspaces";
 
 export default async function DashboardLayout({
   children,
@@ -15,6 +16,8 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+  const { workspaces, current } = await getWorkspaceContext();
+  if (!current) redirect("/login");
 
   const email = user.email ?? "Your account";
   const initials = email.slice(0, 1).toUpperCase();
@@ -34,7 +37,7 @@ export default async function DashboardLayout({
         <p className="mb-3 mt-8 hidden px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground md:block">
           Workspace
         </p>
-        <WorkspaceNav />
+        <WorkspaceNav workspaces={workspaces} currentWorkspace={current} />
 
         <div className="mt-auto hidden md:block">
           <div className="rounded-2xl bg-secondary p-4">
@@ -62,7 +65,7 @@ export default async function DashboardLayout({
       <main className="min-w-0 px-5 sm:px-8 lg:px-12">
         <header className="flex h-14 items-center justify-between border-b border-border text-xs text-muted-foreground">
           <p>
-            Workspace <span className="px-2 text-border">/</span> LedgerSync AI
+            {current.name} <span className="px-2 text-border">/</span> LedgerSync AI
           </p>
           <span className="inline-flex items-center gap-2">
             <span className="size-2 rounded-full bg-emerald-500" />

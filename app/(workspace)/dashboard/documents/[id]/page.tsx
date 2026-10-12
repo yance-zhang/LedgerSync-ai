@@ -9,6 +9,7 @@ import { ExtractionControl } from "../extraction-control";
 import { InvoiceReviewForm } from "../invoice-review-form";
 import { DocumentPreview } from "../document-preview";
 import { DocumentDeleteButton } from "../document-delete-button";
+import { getWorkspaceContext } from "@/lib/workspaces";
 
 const labels: Record<string, string> = {
   uploaded: "Uploaded",
@@ -24,11 +25,14 @@ export default async function DocumentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { current } = await getWorkspaceContext();
+  if (!current) notFound();
   const supabase = await createClient();
   const { data: document } = await supabase
     .from("documents")
     .select("id, file_name, content_type, size_bytes, status, created_at, storage_path, parsed_data, reviewed_data, processing_error")
     .eq("id", id)
+    .eq("organization_id", current.id)
     .maybeSingle();
 
   if (!document) notFound();

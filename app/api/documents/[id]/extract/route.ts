@@ -2,6 +2,7 @@ import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { extractInvoice } from "@/lib/ai/invoice-extraction";
+import { getWorkspaceContext } from "@/lib/workspaces";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -154,11 +155,14 @@ export async function POST(
   } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
+  const { current } = await getWorkspaceContext();
+  if (!current) return NextResponse.json({ error: "No active workspace is available." }, { status: 404 });
 
   const { data: document, error: documentError } = await supabase
     .from("documents")
     .select("id, status")
     .eq("id", id)
+    .eq("organization_id", current.id)
     .maybeSingle();
 
   if (documentError || !document) {
