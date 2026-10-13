@@ -4,6 +4,7 @@ test("login page renders and switches to account creation", async ({ page }, tes
   await page.goto("/login");
 
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
   await expect(page.getByLabel("Email address")).toBeVisible();
   await expect(page.getByLabel("Password")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("login.png"), fullPage: false });

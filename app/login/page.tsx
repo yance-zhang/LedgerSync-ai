@@ -9,9 +9,9 @@ import { createClient } from "@/lib/supabase/server";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirmed?: string }>;
+  searchParams: Promise<{ confirmed?: string; error?: string }>;
 }) {
-  const { confirmed } = await searchParams;
+  const { confirmed, error } = await searchParams;
 
   try {
     const supabase = await createClient();
@@ -76,6 +76,11 @@ export default async function LoginPage({
           {confirmed === "false" && (
             <Alert variant="destructive" className="mb-5">
               That confirmation link is invalid or has expired. Please try again.
+            </Alert>
+          )}
+          {error === "oauth" && (
+            <Alert variant="destructive" className="mb-5">
+              Social sign-in was cancelled or could not be completed. Please try again.
             </Alert>
           )}
           <AuthForm />
